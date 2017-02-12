@@ -382,6 +382,12 @@ ifndef ARDUINO_SKETCHBOOK
               $(call dir_if_exists,$(HOME)/sketchbook) \
               $(call dir_if_exists,$(HOME)/Documents/Arduino) )
         endif
+
+        ifneq ($(ARDUINO_SKETCHBOOK),)
+            $(call show_config_variable,ARDUINO_SKETCHBOOK,[DEFAULT])
+        else
+            $(call show_config_variable,ARDUINO_SKETCHBOOK,[NOT AVAILABLE])
+        endif
         $(call show_config_variable,ARDUINO_SKETCHBOOK,[DEFAULT])
     endif
 else
@@ -613,8 +619,12 @@ endif
 # Miscellaneous
 
 ifndef USER_LIB_PATH
-    USER_LIB_PATH = $(ARDUINO_SKETCHBOOK)/libraries
-    $(call show_config_variable,USER_LIB_PATH,[DEFAULT],(in user sketchbook))
+    ifdef ARDUINO_SKETCHBOOK
+        USER_LIB_PATH = $(ARDUINO_SKETCHBOOK)/libraries
+        $(call show_config_variable,USER_LIB_PATH,[DEFAULT],(in user sketchbook))
+    else
+        $(call show_config_variable,USER_LIB_PATH,[NOT AVAILABLE])
+    endif
 else
     $(call show_config_variable,USER_LIB_PATH,[USER])
 endif
@@ -971,10 +981,14 @@ ifndef ARDUINO_LIBS
     # automatically determine included libraries
     ARDUINO_LIBS += $(filter $(notdir $(wildcard $(ARDUINO_DIR)/libraries/*)), \
         $(shell sed -ne 's/^ *\# *include *[<\"]\(.*\)\.h[>\"]/\1/p' $(LOCAL_SRCS)))
-    ARDUINO_LIBS += $(filter $(notdir $(wildcard $(ARDUINO_SKETCHBOOK)/libraries/*)), \
-        $(shell sed -ne 's/^ *\# *include *[<\"]\(.*\)\.h[>\"]/\1/p' $(LOCAL_SRCS)))
-    ARDUINO_LIBS += $(filter $(notdir $(wildcard $(USER_LIB_PATH)/*)), \
-        $(shell sed -ne 's/^ *\# *include *[<\"]\(.*\)\.h[>\"]/\1/p' $(LOCAL_SRCS)))
+    ifdef ARDUINO_SKETCHBOOK
+        ARDUINO_LIBS += $(filter $(notdir $(wildcard $(ARDUINO_SKETCHBOOK)/libraries/*)), \
+            $(shell sed -ne 's/^ *\# *include *[<\"]\(.*\)\.h[>\"]/\1/p' $(LOCAL_SRCS)))
+    endif
+    ifdef USER_LIB_PATH
+        ARDUINO_LIBS += $(filter $(notdir $(wildcard $(USER_LIB_PATH)/*)), \
+            $(shell sed -ne 's/^ *\# *include *[<\"]\(.*\)\.h[>\"]/\1/p' $(LOCAL_SRCS)))
+    endif
     ARDUINO_LIBS += $(filter $(notdir $(wildcard $(ARDUINO_PLATFORM_LIB_PATH)/*)), \
         $(shell sed -ne 's/^ *\# *include *[<\"]\(.*\)\.h[>\"]/\1/p' $(LOCAL_SRCS)))
 endif
@@ -1080,8 +1094,10 @@ get_library_files  = $(if $(and $(wildcard $(1)/src), $(wildcard $(1)/library.pr
                         $(wildcard $(1)/*.$(2) $(1)/utility/*.$(2)))
 
 # General arguments
-USER_LIBS      := $(sort $(wildcard $(patsubst %,$(USER_LIB_PATH)/%,$(ARDUINO_LIBS))))
-USER_LIB_NAMES := $(patsubst $(USER_LIB_PATH)/%,%,$(USER_LIBS))
+ifdef USER_LIB_PATH
+    USER_LIBS      := $(sort $(wildcard $(patsubst %,$(USER_LIB_PATH)/%,$(ARDUINO_LIBS))))
+    USER_LIB_NAMES := $(patsubst $(USER_LIB_PATH)/%,%,$(USER_LIBS))
+endif
 
 # Let user libraries override system ones.
 SYS_LIBS       := $(sort $(wildcard $(patsubst %,$(ARDUINO_LIB_PATH)/%,$(filter-out $(USER_LIB_NAMES),$(ARDUINO_LIBS)))))
