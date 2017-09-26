@@ -1638,6 +1638,14 @@ ifneq ($(ISP_EEPROM), 0)
     AVRDUDE_ISPLOAD_OPTS += $(AVRDUDE_UPLOAD_EEP)
 endif
 
+
+ifdef REMOTE_DIR
+	REMOTE_HEX = $(REMOTE_DIR)/$(TARGET).hex
+else
+	REMOTE_HEX = $(TARGET).hex
+endif
+
+
 ########################################################################
 # Explicit targets start here
 
@@ -1727,6 +1735,14 @@ raw_eeprom:	$(TARGET_HEX) verify_size
 reset:
 		$(call arduino_output,Resetting Arduino...)
 		$(RESET_CMD)
+
+remote-upload:	$(TARGET_HEX) verify_size
+		scp $(TARGET_HEX) $(REMOTE_HOST):$(REMOTE_HEX)
+		ssh $(REMOTE_HOST) 'avrdude -q -V -p atmega328p -D -c arduino \
+			-b $(AVRDUDE_ARD_BAUDRATE) \
+			-P $$(ls /dev/ttyACM? /dev/ttyUSB? 2>/dev/null |head -n1) \
+			-U flash:w:$(REMOTE_HEX):i'
+
 
 # stty on MacOS likes -F, but on Debian it likes -f redirecting
 # stdin/out appears to work but generates a spurious error on MacOS at
