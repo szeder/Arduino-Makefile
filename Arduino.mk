@@ -1645,6 +1645,16 @@ else
 	REMOTE_HEX = $(TARGET).hex
 endif
 
+ifndef REMOTE_MONITOR_CMD
+	REMOTE_MONITOR_CMD = $(MONITOR_CMD)
+endif
+ifndef REMOTE_MONITOR_BAUDRATE
+	REMOTE_MONITOR_BAUDRATE = $(MONITOR_BAUDRATE)
+endif
+ifndef REMOTE_MONITOR_PARAMS
+	REMOTE_MONITOR_PARAMS = $(MONITOR_PARAMS)
+endif
+
 
 ########################################################################
 # Explicit targets start here
@@ -1818,6 +1828,15 @@ debug_init:
 
 debug:
 	$(GDB) $(GDB_OPTS)
+
+remote-monitor:
+ifeq ($(notdir $(REMOTE_MONITOR_CMD)), picocom)
+	ssh -t $(REMOTE_HOST) '$(REMOTE_MONITOR_CMD) \
+		-b $(REMOTE_MONITOR_BAUDRATE) $(REMOTE_MONITOR_PARAMS) \
+		$$(ls /dev/ttyACM? /dev/ttyUSB? 2>/dev/null |head -n1)'
+else
+	$(error "REMOTE_MONITOR_CMD is not picocom but '$(REMOTE_MONITOR_CMD)'")
+endif
 
 disasm: $(OBJDIR)/$(TARGET).lss
 		@$(ECHO) "The compiled ELF file has been disassembled to $(OBJDIR)/$(TARGET).lss\n\n"
